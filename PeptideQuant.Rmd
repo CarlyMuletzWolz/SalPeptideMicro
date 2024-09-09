@@ -1,0 +1,226 @@
+---
+title: "PeptideQuant"
+author: "Carly Muletz Wolz"
+date: "2/14/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r data explore}
+
+setwd("/Users/Carly/OneDrive - Smithsonian Institution/Salamanders2020/")
+
+## THere was an error in the prior peptide quantification sheet (Randall), now the one that says final (Peptide_quantification-FINAL) is correct. The quant from microBCA assay needs to be divided by 1.5 (as 1.5 ml was in that aliquot) and then multiplied by 20 (as 20 ml was the amount eluted in total). This has been corrected in the metadata file feb072022 with PeptideQuant verified.
+
+metaS <- read.csv("Salamanders_metadata_final_2020_feb072022.csv", header = T, row.names = 1)
+
+
+pep<-subset(metaS,DATASET_PEPTIDES == "PEPTIDES")
+
+str(pep)
+
+
+```
+
+```{r, general sample sizes}
+
+library(plyr)
+pepSpp <- ddply(pep, .(Species, Site, Locality, Bd), summarize, sample_size=length(Species))
+
+pepSpp
+
+#write.csv(pepSpp, "SampleSizeSppSiteBd.csv")
+
+pepSpp2 <- ddply(pep, .(Species, Site, Locality, Injection), summarize, sample_size=length(Species))
+
+pepSpp2
+
+tissue<-subset(metaS, Tissue == "yes")
+
+metaS$Tissue
+
+Transc <- ddply(tissue, .(Species, Site, Locality, Bd, Injection), summarize, sample_size=length(Species))
+
+Transc
+
+```
+
+```{r}
+pep$Injection <- as.factor(pep$Injection)
+
+## More peptides than just peptides in control bags and during peptide harvest? ####
+
+boxplot(pep$PeptideQuant ~ pep$Injection)
+
+
+mean(subset(pep, Injection == "no/poke")$PeptideQuant)
+# standard error
+sd((subset(pep, Injection == "no/poke")$PeptideQuant)/sqrt(15))
+
+104.3238/sqrt(15)                                                         
+
+
+
+mean(subset(pep, Injection == "yes")$PeptideQuant)
+sd(subset(pep, Injection == "yes")$PeptideQuant)
+sd(subset(pep, Injection == "yes")$PeptideQuant)/sqrt(76)
+
+
+mean(subset(pep, Injection == "control")$PeptideQuant)
+sd(subset(pep, Injection == "control")$PeptideQuant)/sqrt(10)
+
+480/180
+
+## Distribution is skewed, correct with log transformation
+
+hist(pep$PeptideQuant)
+hist(log10(pep$PeptideQuant))
+
+pep$PeptideQuantLog <- log10(pep$PeptideQuant) # best fit
+
+shapiro.test(pep$PeptideQuantLog)
+library(car)
+leveneTest(pep$PeptideQuantLog~pep$Injection)
+
+## normal distribution, similar variances
+
+mc <- aov(PeptideQuantLog ~ Injection, data = pep)
+
+summary(mc)
+
+TukeyHSD(mc)
+
+## massage method higher than peptide quants of controls
+## acetycholine injections most effective, higher than massage(poke)
+## salamanders < 2 g = 50 ul per gram body weight of 0.05 M acetylcholine
+## salamanders > 2 g = 25 ul per gram body weight of 0.1 M acetylcholine
+## done to make sure you don't inject more than 100 ul into body (based on recommendations from Dr. Rollins-Smith)
+
+boxplot(pep$PeptideQuantLog ~ pep$Injection)
+
+```
+
+
+```{r species x method}
+
+## More peptides with injection, species dependent? ####
+
+## subset to only true biological samples
+pep2 <- subset(pep, Peptide_Harvest == "yes")
+
+mean(pep2$PeptideQuant)
+
+levels(pep2$Injection)
+
+pep2 <- droplevels(pep2)
+
+boxplot(pep2$PeptideQuant ~ pep2$Injection)
+
+boxplot(pep2$PeptideQuantLog ~ pep2$Injection)
+
+summary(lm(pep2$PeptideQuantLog ~ pep2$Injection))
+
+plot(pep2$Bd_load ~ pep2$PeptideQuant)
+
+library(ggplot2)
+
+
+ggplot(data = pep2, aes(y=PeptideQuantLog, x =Injection))+geom_boxplot()+theme_bw()+
+  theme_classic()+theme(text=element_text(size = 16)) + facet_wrap(~Species)
+
+shapiro.test(pep2$PeptideQuantLog)
+library(car)
+leveneTest(pep2$PeptideQuantLog~pep2$Injection)
+leveneTest(pep2$PeptideQuantLog~pep2$Species)
+
+m1 <- aov(PeptideQuantLog ~ Injection*Species, data = pep2)
+
+summary(m1)
+TukeyHSD(m1)
+
+## Acetylcholine injections increase peptide yields, regardless of species
+
+library(ggplot2)
+ggplot(data = pep2, aes(y=PeptideQuantLog, x =Injection))+geom_boxplot()+theme_bw()+
+  theme_classic()+theme(text=element_text(size = 16))+ ylab("log10(Peptide (ug))")
+
+ggplot(data = pep2, aes(y=PeptideQuant, x =Injection))+geom_boxplot()+theme_bw()+
+  theme_classic()+theme(text=element_text(size = 16))+ ylab("Peptide (ug)")+ facet_wrap(~Species)
+library(plyr)
+
+pep2$InjSpecies <- paste(pep2$Injection, pep2$Species)
+
+sum_data <- ddply(pep2, c("Injection"), summarise,
+               N    = length(PeptideQuant),
+               mean = mean(PeptideQuant),
+               median = median(PeptideQuant),
+               sd   = sd(PeptideQuant),
+               se   = sd / sqrt(N))
+
+sum_data2 <- ddply(pep2, c("InjSpecies"), summarise,
+               N    = length(PeptideQuant),
+               mean = mean(PeptideQuant),
+               median = median(PeptideQuant),
+               sd   = sd(PeptideQuant),
+               se   = sd / sqrt(N))
+
+sum_data2
+
+p <- ggplot(sum_data, aes(x=Injection, y=log10(mean))) +  geom_bar(position=position_dodge(), stat="identity", color = "black") +
+    geom_errorbar(aes(ymin=log10(mean-se), ymax=log10(mean+se)),
+                  width=.2,                    # Width of the error bars
+                  position=position_dodge(.9)) +
+    xlab("Stimulation method") +
+    ylab("Mean peptides (ug)") +
+    theme_bw() + theme_classic()+ 
+  theme(text = element_text(size = 16))
+
+p
+
+## PUBLICATION FIGURE, then editted in powerpoint
+
+
+## PUBLICATION FIGURE, then editted in powerpoint
+p <- ggplot(sum_data2, aes(x=InjSpecies, y=log10(mean))) +  geom_bar(position=position_dodge(), stat="identity", color = "black", width = 0.7, fill = c("gray90", "gray60", "gray40", "gray90", "gray60", "gray40")) +
+    geom_errorbar(aes(ymin=log10(mean-se), ymax=log10(mean+se)),
+                  width=.2,                    # Width of the error bars
+                  position=position_dodge(.9)) +
+    xlab("") +
+    ylab("log10(mean total peptides (ug))") +
+    theme_bw() + theme_classic()+ 
+  theme(text = element_text(size = 18))
+
+p
+
+p <- ggplot(sum_data2, aes(x=InjSpecies, y=log10(mean))) +  geom_bar(position=position_dodge(), stat="identity", color = "black", width = 0.5, fill = c("lightcyan2","palegreen2", "dodgerblue3", "lightcyan3", "palegreen3", "#0072B2")) +
+    geom_errorbar(aes(ymin=log10(mean-se), ymax=log10(mean+se)),
+                  width=.1,                    # Width of the error bars
+                  position=position_dodge(.9)) +
+    xlab("") +
+    ylab("log10(mean total peptides (ug))") +
+    theme_bw() + theme_classic()+ 
+  theme(text = element_text(size = 18))
+
+p
+
+
+ggplot(sum_data2, aes(x=InjSpecies, y=mean)) +  geom_bar(position=position_dodge(), stat="identity", color = "black", width = 0.3) +
+    geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd),
+                  width=.2,                    # Width of the error bars
+                  position=position_dodge(.9)) +
+    xlab("Stimulation method") +
+    ylab("Mean peptides (ug)") +
+    theme_bw() + theme_classic()+ 
+  theme(text = element_text(size = 16))
+
+
+```
