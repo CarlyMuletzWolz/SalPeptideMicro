@@ -16,3 +16,5 @@ R file (CalculateInhibScorePeptFigure.R) and metadata (PlateReadsAll-SalAMPs.csv
 
 ### Inhibition scores for synthesized peptides
 R file (CalculateInhibScorePepFigSynthetic.R) and metadata (PlateReadsAll-long.csv)
+
+### Message me for microbiome-peptide analyses. 10+ files exist
