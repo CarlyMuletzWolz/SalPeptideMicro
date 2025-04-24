@@ -1,0 +1,252 @@
+---
+title: "SalPeptides2020"
+author: "Carly Muletz Wolz"
+date: "2024-05-17"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Transcriptome Data
+```{r}
+
+### Plot transcript and proteomic data
+
+library(ggplot2)
+theme_set(theme_classic())
+
+## read file
+
+setwd("/Users/Carly/OneDrive - Smithsonian Institution/Salamanders2020/Peptides 2020/##ManuscriptFigsTables/")
+
+trans <- read.csv(file = "Table_S2_v2-AnnotatedTranscriptSequences.csv")
+
+ggplot(trans, aes(PeptideClass)) + geom_bar(aes(fill=Organism), width = 0.5) + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6)) 
+
+## But this is all sequences 279 and they form clusters and we want the nonredundant counts
+
+library(plyr)
+infoT <- ddply(trans, .(PeptideClass, Organism, PeptideCluster), summarize, sample_size=length(Organism))
+infoT
+
+infoT2 <- ddply(trans, .(PeptideClass, Organism), summarize, sample_size=length(Organism))
+infoT2
+
+sum(infoT2[infoT2$Organism == "E. bislineata",]$sample_size)
+sum(infoT2[infoT2$Organism == "P. cinereus",]$sample_size)
+sum(infoT2[infoT2$Organism == "N. viridescens",]$sample_size)
+
+
+library(dplyr)
+
+## count unique 
+trans %>%
+  group_by(PeptideClass, Organism) %>%
+  summarise(n_unique = n_distinct(PeptideCluster))
+
+
+transM <-trans %>%
+  group_by(PeptideClass, Organism) %>%
+  summarise(n_unique = n_distinct(PeptideCluster))
+
+sum(transM[transM$Organism == "E. bislineata",]$n_unique)
+sum(transM[transM$Organism == "P. cinereus",]$n_unique)
+sum(transM[transM$Organism == "N. viridescens",]$n_unique)
+
+ggplot(transM,aes(x = PeptideClass,y = n_unique,fill = Organism)) + 
+    geom_bar(colour = "black",position = "dodge",stat = "identity", width = 0.8) + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6)) + theme(text = element_text(size = 20))+ xlab("Peptide Class") +ylab("Transcripts non-redundant peptides")
+
+
+
+
+## But can we get a category where we have clusters that are shared between species
+## I manually went in and added a column called species
+
+transM2 <-trans %>%
+  group_by(PeptideClass, Species) %>%
+  summarise(n_unique = n_distinct(PeptideCluster))
+
+## Order them from one species, to two species to three
+
+levels(factor(transM2$Species))
+str(transM2$Species)
+
+transM2$Species <- factor(transM2$Species, levels = c("bislineata", "cinereus", "viridescens", "bislineata, cinereus", "bislineata, viridescens", "cinereus, viridescens", "bislineata, cinereus, viridescens"))
+str(transM2$Species)
+levels((transM2$Species))
+
+colorBlindGrey8   <- c("#999999", "#E69F00", "#56B4E9", "#009E73", 
+                       "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+##like the most and translate to gray scale the best also.
+## Could think about trying to find a way to hatch or tile the bars. But, in my looking all of it looked like a lot
+Palette3 <- c("lightcyan","#56B4E9","#0072B2","#F0E442", "tomato", "coral4","darkorchid4")
+
+## Julian said he didn't like the colors of the individual species (was palette5 like for dia and dda)!
+## Too blande on this one, need some color
+Palette4 <- c("aquamarine2", "#009E73", "olivedrab4","lightcyan","#56B4E9","#0072B2","darkorchid4")
+
+Palette5 <- c("orange", "orangered", "red4","lightcyan","#56B4E9","#0072B2","darkorchid4")
+
+Palette6 <- c("lightcyan2","palegreen2", "#0072B2", "yellow", "orange", "red2","darkorchid4")
+
+#Palette7 <- c("#7CCD7C", "#FFA500", "#A4D3EE", "yellow", "#0072B2", "red2","darkorchid4")
+
+
+## 12 x 6.7
+ggplot(transM2,aes(x = PeptideClass, y = n_unique, fill = Species)) + 
+  geom_bar(colour = "black", position = "dodge", stat = "identity", width = 0.8) + 
+  theme(axis.text.x = element_text(size = 18, angle = 65, vjust = 0.6),
+        axis.title = element_text(size = 20)) +
+  theme(axis.text.y = element_text(size = 18)) +
+  #theme(text = element_text(size = 20)) +
+  theme(legend.text = element_text(size = 12, face = "italic"),
+        legend.title = element_text(size = 14)) +
+  xlab("Peptide Class") +
+  ylab("Transcripts non-redundant peptides") +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 5)) +
+  scale_fill_manual(values=Palette6) 
+
+```
+ 
+# Proteomic data
+### DIA
+```{r}
+
+## read file
+
+#setwd("/Users/Carly/OneDrive - Smithsonian Institution/Salamanders2020/Peptides 2020/##ManuscriptFigsTables/")
+
+dia <- read.csv(file = "Table_S3-Qvalue_PepsumDIA_FINAL.csv")
+
+
+infoDIA <- ddply(dia, .(PeptideClass, Organism), summarize, sample_size=length(Organism))
+infoDIA
+
+sum(infoDIA[infoDIA$Organism == "Eurycea bislineata",]$sample_size)
+sum(infoDIA[infoDIA$Organism == "Plethodon cinereus",]$sample_size)
+sum(infoDIA[infoDIA$Organism == "Nothopthalmus viridescens",]$sample_size)
+
+
+
+## count unique 
+dia %>%
+  group_by(PeptideClass, Organism) %>%
+  summarise(n_unique = n_distinct(PeptideCluster))
+
+
+diaM <- dia %>%
+  group_by(PeptideClass, Organism) %>%
+  summarise(n_unique = n_distinct(PeptideCluster))
+
+
+sum(diaM[diaM$Organism == "Eurycea bislineata",]$n_unique)
+sum(diaM[diaM$Organism == "Plethodon cinereus",]$n_unique)
+sum(diaM[diaM$Organism == "Nothopthalmus viridescens",]$n_unique)
+
+diaM$Organism <- factor(diaM$Organism, levels=c("Eurycea bislineata", "Plethodon cinereus", "Nothopthalmus viridescens"))
+
+
+ggplot(diaM,aes(x = PeptideClass,y = n_unique,fill = Organism)) + 
+    geom_bar(colour = "black",position = "dodge",stat = "identity", width = 0.8) + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6)) + theme(text = element_text(size = 20))+ xlab("Peptide Class") +ylab("Transcripts non-redundant peptides")
+
+
+## But can we get a category where we have clusters that are shared between species
+# But nothing is shared between species for DIA or DDA, not needed, but using species plots to match transcript plot
+## I manually went in and added a column called species
+
+diaM2 <- dia %>%
+  group_by(PeptideClass, Species) %>%
+  summarise(n_unique = n_distinct(PeptideCluster))
+
+## Order them from one species, to two species to three
+
+levels(factor(diaM2$Species))
+diaM2$Species <- as.factor(diaM2$Species)
+str(diaM2$Species)
+
+## plot
+
+##8.8 x 6.1
+ggplot(diaM2,aes(x = PeptideClass, y = n_unique, fill = Species)) + 
+  geom_bar(colour = "black", position = "dodge", stat = "identity", width = 0.6) + 
+  theme(axis.text.x = element_text(size = 18, angle = 70, vjust = 0.55),
+        axis.title = element_text(size = 20)) +
+  theme(axis.text.y = element_text(size = 18)) +
+  #theme(text = element_text(size = 20)) +
+  theme(legend.text = element_text(size = 12, face = "italic"),
+        legend.title = element_text(size = 14)) +
+  xlab("Peptide Class") +
+  ylab("DIA non-redundant peptides") +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 5)) +
+  scale_fill_manual(values=Palette6) 
+
+```
+
+## DDA
+```{r}
+
+## read file
+
+#setwd("/Users/Carly/OneDrive - Smithsonian Institution/Salamanders2020/Peptides 2020/##ManuscriptFigsTables/")
+
+dda <- read.csv(file = "Table_S4-Qvalue_PepsumDDA_JUC.csv")
+
+infoDDA <- ddply(dda, .(PeptideClass, Organism), summarize, sample_size=length(Organism))
+infoDDA
+
+sum(infoDDA[infoDDA$Organism == "Eurycea bislineata",]$sample_size)
+sum(infoDDA[infoDDA$Organism == "Plethodon cinereus",]$sample_size)
+sum(infoDDA[infoDDA$Organism == "Nothopthalmus viridescens",]$sample_size)
+
+
+ggplot(dda, aes(PeptideClass)) + geom_bar(aes(fill=Organism), width = 0.5) + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6)) 
+
+## count unique 
+dda %>%
+  group_by(PeptideClass, Organism) %>%
+  summarise(n_unique = n_distinct(PeptideCluster))
+
+
+ddaM <- dda %>%
+  group_by(PeptideClass, Organism) %>%
+  summarise(n_unique = n_distinct(PeptideCluster))
+
+
+sum(ddaM[ddaM$Organism == "Eurycea bislineata",]$n_unique)
+sum(ddaM[ddaM$Organism == "Plethodon cinereus",]$n_unique)
+sum(ddaM[ddaM$Organism == "Nothopthalmus viridescens",]$n_unique)
+
+ddaM$Organism <- factor(ddaM$Organism, levels=c("Eurycea bislineata", "Plethodon cinereus", "Nothopthalmus viridescens"))
+
+
+ggplot(ddaM,aes(x = PeptideClass,y = n_unique,fill = Organism)) + 
+    geom_bar(colour = "black",position = "dodge",stat = "identity", width = 0.8) + 
+  theme(axis.text.x = element_text(angle=65, vjust=0.6)) + theme(text = element_text(size = 20))+ xlab("Peptide Class") +ylab("Transcripts non-redundant peptides")
+
+
+## But can we get a category where we have clusters that are shared between species
+## There are NO clusters that are shared b/w species
+
+## plot
+##9.7 x 6.1
+ggplot(ddaM,aes(x = PeptideClass, y = n_unique, fill = Organism)) + 
+  geom_bar(colour = "black", position = "dodge", stat = "identity", width = 0.8) +
+  theme(axis.text.x = element_text(size = 18, angle = 80, vjust = 0.55),
+        axis.title = element_text(size = 20)) +
+  theme(axis.text.y = element_text(size = 18)) +
+  #theme(text = element_text(size = 20)) +
+  theme(legend.text = element_text(size = 12, face = "italic"),
+        legend.title = element_text(size = 14)) +
+  xlab("Peptide Class") +
+  ylab("DDA non-redundant peptides") +
+  scale_y_continuous(breaks = scales::pretty_breaks(n = 5), limits = c(0,23)) +
+  scale_fill_manual(values=Palette6)
+
+```
