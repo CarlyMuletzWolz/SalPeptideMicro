@@ -1,5 +1,4 @@
 # SalPeptideMicro
-Antimicrobial peptide discovery paired with microbiomes
 
 Novel antimicrobial peptides and peptide-microbiome crosstalk in Appalachian salamander skin
 
