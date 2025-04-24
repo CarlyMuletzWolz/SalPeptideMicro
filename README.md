@@ -1,5 +1,11 @@
 # SalPeptideMicro
-Anitmicrobial peptide discovery paired with microbiomes
+Antimicrobial peptide discovery paired with microbiomes
+
+Novel antimicrobial peptides and peptide-microbiome crosstalk in Appalachian salamander skin
+
+Authors: Carly R. Muletz-Wolz, Julian Urrutia-Carter, Owen Osborne, Steve Kutos, Jose Meneses Montano, Joseph Madison, Brian Gratwicke, Ratanachat Racharaks, Norma E. Roncal, Randall R. Jimenez, Amy Ellison, Timothy P. Cleland
+
+
 
 
 ### Peptide quantification analyses
