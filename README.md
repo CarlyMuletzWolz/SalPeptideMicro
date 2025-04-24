@@ -7,7 +7,7 @@ R file (PeptideQuant.Rmd), metadata (Salamander_metadata_final_2020.csv), and ou
 
 
 ### Transcriptomic, Proteomic synthesis
-ADD FILES
+R file (SalPeptides2020_JUC.Rmd), metadata (Table_S2_v2-AnnotatedTranscriptSequences.csv, Table_S3-Qvalue_PepsumDIA_FINAL.csv, Table_S4-Qvalue_PepsumDDA_JUC.csv) and output (SalPeptides2020_JUC.html)
 
 
 ### Inhibition scores for crude peptides
